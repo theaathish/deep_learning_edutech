@@ -112,9 +112,8 @@ const EditCourse = () => {
     try {
       const uploadFormData = new FormData();
       uploadFormData.append("file", file);
-      uploadFormData.append("type", type);
 
-      const response = await api.post("/media/upload", uploadFormData, {
+      const response = await api.post(`/media/upload?type=${type}`, uploadFormData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

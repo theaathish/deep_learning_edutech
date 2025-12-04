@@ -108,7 +108,7 @@ const CreateCourse = () => {
     formDataUpload.append('file', file);
     formDataUpload.append('type', type);
 
-    const response = await api.post('/media/upload', formDataUpload, {
+    const response = await api.post(`/media/upload?type=${type}`, formDataUpload, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

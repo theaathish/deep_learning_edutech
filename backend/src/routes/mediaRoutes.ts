@@ -11,23 +11,12 @@ const router = Router();
 // Generic upload endpoint (routes based on type parameter)
 router.post('/upload', authenticate, async (req: Request, res: Response) => {
   try {
-    // For multipart/form-data, fields (like `type`) are not populated until multer parses the request.
-    // First parse only the fields (no files) to read `type`, then apply the appropriate file middleware.
-    upload.none()(req as any, res as any, (fieldErr: any) => {
-      if (fieldErr) {
-        console.error('Field parsing error:', fieldErr);
-        return sendError(res, 'Failed to parse form fields', 400);
-      }
+    // Prefer `type` from query string (e.g., /upload?type=video) — avoids needing multer to parse fields first.
+    const queryType = (req.query.type as string) || undefined;
 
-      const { type } = req.body;
-
-      if (!type) {
-        return sendError(res, 'Type parameter is required', 400);
-      }
-
+    if (queryType) {
       let uploadMiddleware;
-
-      switch (type) {
+      switch (queryType) {
         case 'thumbnail':
           uploadMiddleware = uploadImage.single('file');
           break;
@@ -41,7 +30,6 @@ router.post('/upload', authenticate, async (req: Request, res: Response) => {
           return sendError(res, 'Invalid type parameter. Must be thumbnail, video, or document', 400);
       }
 
-      // Apply the appropriate upload middleware to handle the file
       uploadMiddleware(req as any, res as any, async (err: any) => {
         if (err) {
           console.error('Upload middleware error:', err);
@@ -62,9 +50,64 @@ router.post('/upload', authenticate, async (req: Request, res: Response) => {
           url: fileUrl,
           size: req.file.size,
           mimetype: req.file.mimetype,
-          type: type,
+          type: queryType,
         }, 'File uploaded successfully', 201);
       });
+
+      return;
+    }
+
+    // Fallback: if `type` wasn't provided in query, accept a single file with the general upload
+    // middleware and then validate it according to the `type` field in the parsed body.
+    upload.single('file')(req as any, res as any, async (err: any) => {
+      if (err) {
+        console.error('Field parsing error:', err);
+        // Multer may return detailed errors (LIMIT_FILE_SIZE, etc.) — surface a generic message here
+        return sendError(res, 'Failed to parse upload', 400);
+      }
+
+      const type = req.body?.type as string | undefined;
+
+      if (!type) {
+        // Clean up uploaded file if present
+        if (req.file) {
+          try { await deleteFile(getRelativePath(req.file.path)); } catch (_) {}
+        }
+        return sendError(res, 'Type parameter is required', 400);
+      }
+
+      if (!req.file) {
+        return sendError(res, 'No file provided', 400);
+      }
+
+      // Validate mime and size based on declared type. If invalid, delete the stored file.
+      const file = req.file as Express.Multer.File;
+      const isValidImage = config.upload.allowedImageTypes.includes(file.mimetype) && file.size <= config.upload.maxImageSize;
+      const isValidVideo = config.upload.allowedVideoTypes.includes(file.mimetype) && file.size <= config.upload.maxVideoSize;
+      const isValidDoc = config.upload.allowedDocTypes.includes(file.mimetype) && file.size <= config.upload.maxFileSize;
+
+      let valid = false;
+      if (type === 'thumbnail') valid = isValidImage;
+      if (type === 'video') valid = isValidVideo;
+      if (type === 'document') valid = isValidDoc;
+
+      if (!valid) {
+        try { await deleteFile(getRelativePath(file.path)); } catch (e) { console.error('Failed to delete invalid upload', e); }
+        return sendError(res, 'Uploaded file does not match declared type or exceeds size limit', 400);
+      }
+
+      const relativePath = getRelativePath(file.path);
+      const fileUrl = getFileUrl(relativePath);
+
+      sendSuccess(res, {
+        filename: file.filename,
+        originalName: file.originalname,
+        path: relativePath,
+        url: fileUrl,
+        size: file.size,
+        mimetype: file.mimetype,
+        type: type,
+      }, 'File uploaded successfully', 201);
     });
   } catch (error) {
     console.error('Generic upload error:', error);
