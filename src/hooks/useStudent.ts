@@ -22,7 +22,7 @@ export function useStudentDashboardStats(options?: Omit<UseQueryOptions<ApiRespo
   return useQuery({
     queryKey: studentKeys.dashboardStats(),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<StudentDashboardStats>>('/students/dashboard-stats');
+      const response = await api.get<ApiResponse<StudentDashboardStats>>('/student/dashboard-stats');
       return response.data;
     },
     ...options,

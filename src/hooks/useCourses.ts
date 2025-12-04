@@ -58,7 +58,7 @@ export function useMyCoursesTeacher() {
   return useQuery({
     queryKey: courseKeys.myCoursesTeacher(),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<Course[]>>('/teachers/my-courses');
+      const response = await api.get<ApiResponse<Course[]>>('/teacher/my-courses');
       return response.data;
     },
   });

@@ -7,6 +7,8 @@ import {
   enrollCourse,
   getMyEnrollments,
   updateProgress,
+  getEnrollmentStatus,
+  completeEnrollment,
 } from '../controllers/enrollmentController';
 
 const router = Router();
@@ -20,6 +22,12 @@ router.post(
 );
 
 router.get('/my-enrollments', authenticate, authorize('STUDENT'), getMyEnrollments);
+
+router.get('/status/:courseId', authenticate, authorize('STUDENT'), getEnrollmentStatus);
+
+router.put('/:enrollmentId/progress', authenticate, authorize('STUDENT'), updateProgress);
+
+router.post('/:enrollmentId/complete', authenticate, authorize('STUDENT'), completeEnrollment);
 
 router.post(
   '/progress',

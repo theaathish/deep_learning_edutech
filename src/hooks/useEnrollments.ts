@@ -14,7 +14,7 @@ export function useMyEnrollments() {
   return useQuery({
     queryKey: enrollmentKeys.myEnrollments(),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<Enrollment[]>>('/enrollments/my');
+      const response = await api.get<ApiResponse<Enrollment[]>>('/enrollments/my-enrollments');
       return response.data;
     },
   });

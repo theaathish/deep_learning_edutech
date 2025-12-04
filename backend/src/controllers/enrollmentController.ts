@@ -154,15 +154,11 @@ export const updateProgress = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const { courseId, completedLessonId } = req.body;
+    const { enrollmentId } = req.params;
+    const { progress } = req.body;
 
     const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        studentId_courseId: {
-          studentId: student.id,
-          courseId,
-        },
-      },
+      where: { id: enrollmentId },
       include: {
         course: {
           include: {
@@ -181,26 +177,14 @@ export const updateProgress = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const completedLessons = (enrollment.completedLessons as string[]) || [];
-    if (!completedLessons.includes(completedLessonId)) {
-      completedLessons.push(completedLessonId);
+    if (enrollment.studentId !== student.id) {
+      sendError(res, 'Unauthorized to update this enrollment', 403);
+      return;
     }
 
-    const totalLessons = enrollment.course.modules.reduce(
-      (acc, module) => acc + module.lessons.length,
-      0
-    );
-    const progress = (completedLessons.length / totalLessons) * 100;
-
     const updatedEnrollment = await prisma.enrollment.update({
-      where: {
-        studentId_courseId: {
-          studentId: student.id,
-          courseId,
-        },
-      },
+      where: { id: enrollmentId },
       data: {
-        completedLessons,
         progress,
         ...(progress === 100 && { completedAt: new Date() }),
       },
@@ -210,5 +194,91 @@ export const updateProgress = async (req: AuthRequest, res: Response): Promise<v
   } catch (error) {
     console.error('Update progress error:', error);
     sendError(res, 'Failed to update progress', 500);
+  }
+};
+
+export const getEnrollmentStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      sendError(res, 'User not authenticated', 401);
+      return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!student) {
+      sendError(res, 'Student profile not found', 404);
+      return;
+    }
+
+    const { courseId } = req.params;
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: student.id,
+          courseId,
+        },
+      },
+    });
+
+    const isEnrolled = !!enrollment;
+
+    sendSuccess(res, {
+      isEnrolled,
+      enrollment: enrollment || undefined,
+    }, 'Enrollment status retrieved successfully');
+  } catch (error) {
+    console.error('Get enrollment status error:', error);
+    sendError(res, 'Failed to get enrollment status', 500);
+  }
+};
+
+export const completeEnrollment = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      sendError(res, 'User not authenticated', 401);
+      return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!student) {
+      sendError(res, 'Student profile not found', 404);
+      return;
+    }
+
+    const { enrollmentId } = req.params;
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+    });
+
+    if (!enrollment) {
+      sendError(res, 'Enrollment not found', 404);
+      return;
+    }
+
+    if (enrollment.studentId !== student.id) {
+      sendError(res, 'Unauthorized to complete this enrollment', 403);
+      return;
+    }
+
+    const updatedEnrollment = await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        progress: 100,
+        completedAt: new Date(),
+      },
+    });
+
+    sendSuccess(res, updatedEnrollment, 'Enrollment completed successfully');
+  } catch (error) {
+    console.error('Complete enrollment error:', error);
+    sendError(res, 'Failed to complete enrollment', 500);
   }
 };
