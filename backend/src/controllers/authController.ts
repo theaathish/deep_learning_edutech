@@ -3,7 +3,7 @@ import { AuthRequest } from '../types';
 import prisma from '../config/database';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { sendSuccess, sendError, AppError } from '../utils/response';
+import { sendSuccess, sendError } from '../utils/response';
 import { sendWelcomeEmail } from '../utils/email';
 
 export const register = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -207,10 +207,6 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: {
-        teacher: true,
-        student: true,
-      },
       select: {
         id: true,
         email: true,

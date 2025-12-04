@@ -1,10 +1,18 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Load environment-specific .env file
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 
 export const config = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '8000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  apiUrl: process.env.API_URL || 'http://localhost:5000',
+  
+  // Database
+  database: {
+    url: process.env.DATABASE_URL || 'postgresql://edutech:edutech@localhost:5432/edutech?schema=public',
+  },
   
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key',
@@ -29,9 +37,30 @@ export const config = {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
   },
   
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    secret: process.env.RAZORPAY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  },
+  
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10), // 100MB for videos
+    maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '524288000', 10), // 500MB for videos
+    maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10), // 10MB for images
     uploadPath: process.env.UPLOAD_PATH || './uploads',
+    allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    allowedVideoTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/mpeg'],
+    allowedDocTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  },
+  
+  media: {
+    thumbnailWidth: 320,
+    thumbnailHeight: 180,
+    videoQuality: 'medium', // low, medium, high
+  },
+  
+  cloudflare: {
+    tunnelEnabled: process.env.CLOUDFLARE_TUNNEL_ENABLED === 'true',
   },
   
   admin: {

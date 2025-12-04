@@ -1,28 +1,76 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import type { ApiError } from "@/types";
 
 const StudentLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, register } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: isLogin ? "Login successful!" : "Account created!",
-      description: "Redirecting to your dashboard...",
-    });
-    setTimeout(() => {
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        await login({
+          email: formData.email,
+          password: formData.password,
+        });
+        toast({
+          title: "Login successful!",
+          description: "Welcome back! Redirecting to your dashboard...",
+        });
+      } else {
+        await register({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          role: "STUDENT",
+        });
+        toast({
+          title: "Account created!",
+          description: "Welcome to EduTech! Redirecting to your dashboard...",
+        });
+      }
       navigate("/student/dashboard");
-    }, 1000);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiError>;
+      const errorMessage = axiosError.response?.data?.message || 
+        (isLogin ? "Login failed. Please check your credentials." : "Registration failed. Please try again.");
+      
+      toast({
+        variant: "destructive",
+        title: isLogin ? "Login failed" : "Registration failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,18 +97,41 @@ const StudentLogin = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Jane Smith" required />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="Jane"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Smith"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email / Phone</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  type="text"
+                  type="email"
                   placeholder="student@example.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -69,7 +140,11 @@ const StudentLogin = () => {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange}
                   required
+                  minLength={6}
+                  disabled={isLoading}
                 />
               </div>
               {isLogin && (
@@ -82,8 +157,15 @@ const StudentLogin = () => {
                   </Link>
                 </div>
               )}
-              <Button type="submit" className="w-full">
-                {isLogin ? "Login" : "Create Account"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? "Logging in..." : "Creating account..."}
+                  </>
+                ) : (
+                  isLogin ? "Login" : "Create Account"
+                )}
               </Button>
             </form>
 
@@ -94,6 +176,7 @@ const StudentLogin = () => {
                   <button
                     onClick={() => setIsLogin(false)}
                     className="text-primary hover:underline font-medium"
+                    disabled={isLoading}
                   >
                     Sign up
                   </button>
@@ -104,6 +187,7 @@ const StudentLogin = () => {
                   <button
                     onClick={() => setIsLogin(true)}
                     className="text-primary hover:underline font-medium"
+                    disabled={isLoading}
                   >
                     Login
                   </button>

@@ -1,34 +1,150 @@
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
+import { Request } from 'express';
 
+// Ensure upload directories exist
+const uploadDirs = ['images', 'videos', 'documents', 'thumbnails', 'proofs'];
+uploadDirs.forEach(dir => {
+  const dirPath = path.join(config.upload.uploadPath, dir);
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+});
+
+// Determine upload directory based on file type
+const getUploadDir = (mimetype: string): string => {
+  if (config.upload.allowedImageTypes.includes(mimetype)) {
+    return 'images';
+  }
+  if (config.upload.allowedVideoTypes.includes(mimetype)) {
+    return 'videos';
+  }
+  if (config.upload.allowedDocTypes.includes(mimetype)) {
+    return 'documents';
+  }
+  return 'others';
+};
+
+// Storage configuration
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, config.upload.uploadPath);
+  destination: (_req: Request, file, cb) => {
+    const subDir = getUploadDir(file.mimetype);
+    const uploadDir = path.join(config.upload.uploadPath, subDir);
+    
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+  filename: (_req: Request, file, cb) => {
+    const uniqueName = `${Date.now()}-${uuidv4()}${path.extname(file.originalname).toLowerCase()}`;
     cb(null, uniqueName);
   },
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  const allowedTypes = /jpeg|jpg|png|pdf|doc|docx|mp4|mov|avi/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
+// File filter for images
+const imageFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (config.upload.allowedImageTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only images, PDFs, documents, and videos are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'));
   }
 };
 
+// File filter for videos
+const videoFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (config.upload.allowedVideoTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only MP4, MOV, AVI, WebM, and MPEG videos are allowed.'));
+  }
+};
+
+// File filter for documents
+const documentFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (config.upload.allowedDocTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF and Word documents are allowed.'));
+  }
+};
+
+// Combined filter for all file types
+const allFilesFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allAllowed = [
+    ...config.upload.allowedImageTypes,
+    ...config.upload.allowedVideoTypes,
+    ...config.upload.allowedDocTypes,
+  ];
+  
+  if (allAllowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only images, videos, and documents are allowed.'));
+  }
+};
+
+// Upload middleware for images (profile pictures, thumbnails)
+export const uploadImage = multer({
+  storage,
+  limits: {
+    fileSize: config.upload.maxImageSize,
+  },
+  fileFilter: imageFilter,
+});
+
+// Upload middleware for videos (course content)
+export const uploadVideo = multer({
+  storage,
+  limits: {
+    fileSize: config.upload.maxVideoSize,
+  },
+  fileFilter: videoFilter,
+});
+
+// Upload middleware for documents (verification proofs, assignments)
+export const uploadDocument = multer({
+  storage,
+  limits: {
+    fileSize: config.upload.maxFileSize,
+  },
+  fileFilter: documentFilter,
+});
+
+// General upload middleware (any file type)
 export const upload = multer({
   storage,
   limits: {
     fileSize: config.upload.maxFileSize,
   },
-  fileFilter,
+  fileFilter: allFilesFilter,
 });
+
+// Helper function to delete a file
+export const deleteFile = (filePath: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const fullPath = path.join(config.upload.uploadPath, filePath);
+    fs.unlink(fullPath, (err) => {
+      if (err && err.code !== 'ENOENT') {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+};
+
+// Helper function to get file URL
+export const getFileUrl = (filePath: string): string => {
+  return `${config.apiUrl}/uploads/${filePath}`;
+};
+
+// Helper to get relative path from full path
+export const getRelativePath = (fullPath: string): string => {
+  return fullPath.replace(config.upload.uploadPath + '/', '');
+};

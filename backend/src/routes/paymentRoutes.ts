@@ -4,16 +4,19 @@ import { validate } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import {
-  createPaymentIntent,
-  confirmPayment,
-  createSubscription,
+  createOrder,
+  verifyPayment,
+  createSubscriptionOrder,
+  verifySubscriptionPayment,
   getPaymentHistory,
+  handleWebhook,
 } from '../controllers/paymentController';
 
 const router = Router();
 
+// Course enrollment payment
 router.post(
-  '/create-payment-intent',
+  '/create-order',
   authenticate,
   authorize('STUDENT'),
   [
@@ -21,23 +24,51 @@ router.post(
     body('amount').isFloat({ min: 0 }).withMessage('Valid amount is required'),
     validate,
   ],
-  createPaymentIntent
+  createOrder
 );
 
 router.post(
-  '/confirm-payment',
-  [body('paymentIntentId').notEmpty().withMessage('Payment intent ID is required'), validate],
-  confirmPayment
+  '/verify',
+  authenticate,
+  [
+    body('razorpay_order_id').notEmpty().withMessage('Order ID is required'),
+    body('razorpay_payment_id').notEmpty().withMessage('Payment ID is required'),
+    body('razorpay_signature').notEmpty().withMessage('Signature is required'),
+    validate,
+  ],
+  verifyPayment
 );
 
+// Tutor Stand subscription payment
 router.post(
-  '/create-subscription',
+  '/subscription/create-order',
   authenticate,
   authorize('TEACHER'),
-  [body('priceId').notEmpty().withMessage('Price ID is required'), validate],
-  createSubscription
+  [
+    body('plan').isIn(['monthly', 'yearly']).withMessage('Plan must be monthly or yearly'),
+    body('amount').isFloat({ min: 0 }).withMessage('Valid amount is required'),
+    validate,
+  ],
+  createSubscriptionOrder
 );
 
+router.post(
+  '/subscription/verify',
+  authenticate,
+  authorize('TEACHER'),
+  [
+    body('razorpay_order_id').notEmpty().withMessage('Order ID is required'),
+    body('razorpay_payment_id').notEmpty().withMessage('Payment ID is required'),
+    body('razorpay_signature').notEmpty().withMessage('Signature is required'),
+    validate,
+  ],
+  verifySubscriptionPayment
+);
+
+// Payment history
 router.get('/history', authenticate, authorize('STUDENT'), getPaymentHistory);
+
+// Razorpay webhook (no auth - verified by signature)
+router.post('/webhook', handleWebhook);
 
 export default router;

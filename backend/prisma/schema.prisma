@@ -121,16 +121,17 @@ model Student {
 }
 
 model TutorStandSubscription {
-  id              String              @id @default(uuid())
-  teacherId       String              @unique
-  teacher         Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  status          SubscriptionStatus  @default(INACTIVE)
-  startDate       DateTime?
-  endDate         DateTime?
-  amount          Float
+  id                   String              @id @default(uuid())
+  teacherId            String              @unique
+  teacher              Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  status               SubscriptionStatus  @default(INACTIVE)
+  startDate            DateTime?
+  endDate              DateTime?
+  amount               Float
   stripeSubscriptionId String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  razorpayPaymentId    String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@index([teacherId])
   @@index([status])
@@ -256,21 +257,24 @@ model Review {
 }
 
 model Payment {
-  id              String   @id @default(uuid())
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  amount          Float
-  currency        String   @default("usd")
-  status          String   // succeeded, pending, failed
-  stripePaymentId String?  @unique
-  purpose         String   // course_enrollment, subscription, etc.
-  metadata        Json?    // additional payment info
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(uuid())
+  studentId         String
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount            Float
+  currency          String   @default("INR")
+  status            String   // succeeded, pending, failed
+  stripePaymentId   String?  @unique
+  razorpayOrderId   String?  @unique
+  razorpayPaymentId String?  @unique
+  purpose           String   // course_enrollment, tutor_stand, etc.
+  metadata          Json?    // additional payment info
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([studentId])
   @@index([status])
   @@index([stripePaymentId])
+  @@index([razorpayOrderId])
 }
 
 model Earning {
