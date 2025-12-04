@@ -11,51 +11,60 @@ const router = Router();
 // Generic upload endpoint (routes based on type parameter)
 router.post('/upload', authenticate, async (req: Request, res: Response) => {
   try {
-    const { type } = req.body;
-
-    if (!type) {
-      return sendError(res, 'Type parameter is required', 400);
-    }
-
-    let uploadMiddleware;
-
-    switch (type) {
-      case 'thumbnail':
-        uploadMiddleware = uploadImage.single('file');
-        break;
-      case 'video':
-        uploadMiddleware = uploadVideo.single('file');
-        break;
-      case 'document':
-        uploadMiddleware = uploadDocument.single('file');
-        break;
-      default:
-        return sendError(res, 'Invalid type parameter. Must be thumbnail, video, or document', 400);
-    }
-
-    // Apply the appropriate upload middleware
-    uploadMiddleware(req, res, async (err) => {
-      if (err) {
-        console.error('Upload middleware error:', err);
-        return sendError(res, 'File upload failed', 400);
+    // For multipart/form-data, fields (like `type`) are not populated until multer parses the request.
+    // First parse only the fields (no files) to read `type`, then apply the appropriate file middleware.
+    upload.none()(req as any, res as any, (fieldErr: any) => {
+      if (fieldErr) {
+        console.error('Field parsing error:', fieldErr);
+        return sendError(res, 'Failed to parse form fields', 400);
       }
 
-      if (!req.file) {
-        return sendError(res, 'No file provided', 400);
+      const { type } = req.body;
+
+      if (!type) {
+        return sendError(res, 'Type parameter is required', 400);
       }
 
-      const relativePath = getRelativePath(req.file.path);
-      const fileUrl = getFileUrl(relativePath);
+      let uploadMiddleware;
 
-      sendSuccess(res, {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        path: relativePath,
-        url: fileUrl,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
-        type: type,
-      }, 'File uploaded successfully', 201);
+      switch (type) {
+        case 'thumbnail':
+          uploadMiddleware = uploadImage.single('file');
+          break;
+        case 'video':
+          uploadMiddleware = uploadVideo.single('file');
+          break;
+        case 'document':
+          uploadMiddleware = uploadDocument.single('file');
+          break;
+        default:
+          return sendError(res, 'Invalid type parameter. Must be thumbnail, video, or document', 400);
+      }
+
+      // Apply the appropriate upload middleware to handle the file
+      uploadMiddleware(req as any, res as any, async (err: any) => {
+        if (err) {
+          console.error('Upload middleware error:', err);
+          return sendError(res, 'File upload failed', 400);
+        }
+
+        if (!req.file) {
+          return sendError(res, 'No file provided', 400);
+        }
+
+        const relativePath = getRelativePath(req.file.path);
+        const fileUrl = getFileUrl(relativePath);
+
+        sendSuccess(res, {
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          path: relativePath,
+          url: fileUrl,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          type: type,
+        }, 'File uploaded successfully', 201);
+      });
     });
   } catch (error) {
     console.error('Generic upload error:', error);

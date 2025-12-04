@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useMyCoursesTeacher } from "@/hooks/useCourses";
 import { useTeacherEarnings, useTeacherProfile } from "@/hooks/useTeacher";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TeacherDashboard = () => {
   const [purchaseStatus, setPurchaseStatus] = useState<"not_started" | "pending" | "verified" | "rejected">("not_started");
