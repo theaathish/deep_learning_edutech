@@ -183,16 +183,50 @@ export const getEarnings = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    const earnings = await prisma.earning.findMany({
-      where: { teacherId: teacher.id },
-      orderBy: { createdAt: 'desc' },
+    // Get enrollments with course and student info (these represent actual earnings)
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        course: {
+          teacherId: teacher.id,
+        },
+      },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+          },
+        },
+        student: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { enrolledAt: 'desc' },
     });
 
-    const totalEarnings = earnings.reduce((sum, earning) => sum + earning.amount, 0);
+    // Transform enrollments to earnings format
+    const earnings = enrollments.map(enrollment => ({
+      id: enrollment.id,
+      courseId: enrollment.courseId,
+      studentId: enrollment.studentId,
+      createdAt: enrollment.enrolledAt.toISOString(),
+      course: enrollment.course,
+      student: enrollment.student,
+    }));
+
+    const total = earnings.reduce((sum, e) => sum + (e.course?.price || 0), 0);
 
     sendSuccess(
       res,
-      { earnings, totalEarnings },
+      { earnings, total },
       'Earnings retrieved successfully'
     );
   } catch (error) {

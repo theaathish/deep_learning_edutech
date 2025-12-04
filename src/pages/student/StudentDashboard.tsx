@@ -146,9 +146,9 @@ const StudentDashboard = () => {
                 {courses.map((course) => (
                   <Card key={course.id} className="shadow-card hover:shadow-soft transition-shadow overflow-hidden">
                     <div className="aspect-video bg-muted relative overflow-hidden">
-                      {course.thumbnail ? (
+                      {(course.thumbnail || course.thumbnailImage) ? (
                         <img
-                          src={course.thumbnail}
+                          src={course.thumbnail || course.thumbnailImage}
                           alt={course.title}
                           className="w-full h-full object-cover"
                         />

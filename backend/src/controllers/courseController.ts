@@ -29,6 +29,7 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
       price,
       duration,
       thumbnailImage,
+      videoUrl,
       syllabus,
     } = req.body;
 
@@ -59,6 +60,28 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
         },
       },
     });
+
+    // If videoUrl is provided, create a default module and lesson
+    if (videoUrl) {
+      await prisma.module.create({
+        data: {
+          courseId: course.id,
+          title: 'Main Content',
+          description: 'Course main video content',
+          order: 1,
+          duration: parseInt(duration),
+          lessons: {
+            create: {
+              title: title,
+              content: description,
+              videoUrl: videoUrl,
+              order: 1,
+              duration: parseInt(duration),
+            },
+          },
+        },
+      });
+    }
 
     sendSuccess(res, course, 'Course created successfully', 201);
   } catch (error) {
@@ -319,13 +342,6 @@ export const publishCourse = async (req: AuthRequest, res: Response): Promise<vo
 
     const course = await prisma.course.findUnique({
       where: { id },
-      include: {
-        modules: {
-          include: {
-            lessons: true,
-          },
-        },
-      },
     });
 
     if (!course) {
@@ -338,8 +354,9 @@ export const publishCourse = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    if (course.modules.length === 0) {
-      sendError(res, 'Course must have at least one module', 400);
+    // Validate that course has required fields
+    if (!course.title || !course.description || !course.category || course.price < 0) {
+      sendError(res, 'Course must have title, description, category, and valid price', 400);
       return;
     }
 

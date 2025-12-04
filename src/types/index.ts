@@ -40,11 +40,17 @@ export interface Course {
   id: string;
   title: string;
   description: string;
+  shortDescription?: string;
   category: string;
+  level?: string;
   price: number;
   duration: number;
   thumbnail?: string;
+  thumbnailImage?: string; // Backend uses this field name
+  videoUrl?: string;
   isPublished: boolean;
+  rating?: number;
+  totalEnrollments?: number;
   teacherId: string;
   teacher?: {
     user: Pick<User, 'firstName' | 'lastName' | 'profileImage'>;
@@ -53,6 +59,7 @@ export interface Course {
   updatedAt: string;
   _count?: {
     enrollments: number;
+    reviews?: number;
   };
 }
 

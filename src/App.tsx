@@ -14,6 +14,9 @@ import TeacherLogin from "./pages/teacher/TeacherLogin";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherRegister from "./pages/teacher/TeacherRegister";
 import CreateCourse from "./pages/teacher/CreateCourse";
+import EditCourse from "./pages/teacher/EditCourse";
+import MyCourses from "./pages/teacher/MyCourses";
+import TeacherEarnings from "./pages/teacher/TeacherEarnings";
 import UploadProof from "./pages/teacher/UploadProof";
 import TutorStandPurchase from "./pages/teacher/TutorStandPurchase";
 import StudentLogin from "./pages/student/StudentLogin";
@@ -80,6 +83,30 @@ const App = () => (
               element={
                 <TeacherRoute>
                   <TutorStandPurchase />
+                </TeacherRoute>
+              }
+            />
+            <Route
+              path="/teacher/my-courses"
+              element={
+                <TeacherRoute>
+                  <MyCourses />
+                </TeacherRoute>
+              }
+            />
+            <Route
+              path="/teacher/edit-course/:id"
+              element={
+                <TeacherRoute>
+                  <EditCourse />
+                </TeacherRoute>
+              }
+            />
+            <Route
+              path="/teacher/earnings"
+              element={
+                <TeacherRoute>
+                  <TeacherEarnings />
                 </TeacherRoute>
               }
             />

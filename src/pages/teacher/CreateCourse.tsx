@@ -165,7 +165,7 @@ const CreateCourse = () => {
         category: formData.category,
         price: parseFloat(formData.price),
         duration: parseInt(formData.duration),
-        thumbnail: thumbnailUrl,
+        thumbnailImage: thumbnailUrl,
         videoUrl: videoUrl,
       };
 
