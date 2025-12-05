@@ -5,12 +5,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import { Request } from 'express';
 
-// Ensure upload directories exist
+// Ensure upload directories exist and have proper permissions
 const uploadDirs = ['images', 'videos', 'documents', 'thumbnails', 'proofs'];
+
+// Create main upload directory first
+const mainUploadPath = config.upload.uploadPath;
+if (!fs.existsSync(mainUploadPath)) {
+  fs.mkdirSync(mainUploadPath, { recursive: true, mode: 0o755 });
+  console.log(`✓ Created main upload directory: ${mainUploadPath}`);
+}
+
+// Create subdirectories
 uploadDirs.forEach(dir => {
-  const dirPath = path.join(config.upload.uploadPath, dir);
+  const dirPath = path.join(mainUploadPath, dir);
   if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
+    fs.mkdirSync(dirPath, { recursive: true, mode: 0o755 });
+    console.log(`✓ Created upload subdirectory: ${dirPath}`);
   }
 });
 

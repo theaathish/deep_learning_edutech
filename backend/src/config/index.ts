@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
 // Load environment-specific .env file
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
@@ -39,10 +40,10 @@ export const config = {
   },
   
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10), // 100MB for videos
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10), // 100MB default
     maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '524288000', 10), // 500MB for videos
     maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10), // 10MB for images
-    uploadPath: process.env.UPLOAD_PATH || './uploads',
+    uploadPath: process.env.UPLOAD_PATH || path.join(process.cwd(), 'uploads'),
     allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
     allowedVideoTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/mpeg'],
     allowedDocTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
