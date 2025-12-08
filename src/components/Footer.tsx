@@ -30,18 +30,40 @@ const Footer = () => {
             <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact-us" className="text-muted-foreground hover:text-primary transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                  Terms of Service
+                <Link to="/terms-conditions" className="text-muted-foreground hover:text-primary transition-colors">
+                  Terms & Conditions
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Policies */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-4">Policies</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/shipping-policy" className="text-muted-foreground hover:text-primary transition-colors">
+                  Shipping Policy
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
-                  About Us
+                <Link to="/cancellations-refunds" className="text-muted-foreground hover:text-primary transition-colors">
+                  Cancellations & Refunds
                 </Link>
               </li>
             </ul>
@@ -50,15 +72,24 @@ const Footer = () => {
           {/* Support */}
           <div>
             <h3 className="font-semibold text-foreground mb-4">Support</h3>
-            <a
-              href="https://wa.me/9345266551"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors text-sm"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>WhatsApp Support</span>
-            </a>
+            <ul className="space-y-2">
+              <li>
+                <a
+                  href="https://wa.me/9345266551"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>WhatsApp Support</span>
+                </a>
+              </li>
+              <li>
+                <Link to="/contact-us" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                  Email Support
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 

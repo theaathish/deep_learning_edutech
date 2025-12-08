@@ -9,6 +9,11 @@ import { ProtectedAdminRoute } from "@/components/ProtectedAdminRoute";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import { ContactUs } from "./pages/ContactUs";
+import { ShippingPolicy } from "./pages/ShippingPolicy";
+import { TermsAndConditions } from "./pages/TermsAndConditions";
+import { CancellationsAndRefunds } from "./pages/CancellationsAndRefunds";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import TeacherLogin from "./pages/teacher/TeacherLogin";
@@ -145,6 +150,12 @@ const App = () => (
               <Route path="payments" element={<PaymentManagement />} />
               <Route path="system" element={<SystemMonitoring />} />
             </Route>
+            {/* Policy Pages */}
+            <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/shipping-policy" element={<ShippingPolicy />} />
+            <Route path="/terms-conditions" element={<TermsAndConditions />} />
+            <Route path="/cancellations-refunds" element={<CancellationsAndRefunds />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
