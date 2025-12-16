@@ -125,23 +125,17 @@ const ResetPassword = () => {
       }, 3000);
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
+      const apiError = axiosError.response?.data as ApiError | undefined;
 
       let errorMessage = "";
       let shouldRedirect = false;
 
       if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
         errorMessage = "Request timeout. Server is taking too long to respond. Please try again.";
-      } else if (axiosError.response?.data?.error) {
-        // Backend returns error field for validation failures
-        errorMessage = axiosError.response.data.error;
-        
-        // Check if it's a token-related error
-        if (errorMessage.toLowerCase().includes('invalid') || 
-            errorMessage.toLowerCase().includes('expired')) {
-          shouldRedirect = true;
-        }
-      } else if (axiosError.response?.data?.message) {
-        errorMessage = axiosError.response.data.message;
+      } else if (apiError?.errors?.length) {
+        errorMessage = apiError.errors[0]?.message || "Validation failed.";
+      } else if (apiError?.message) {
+        errorMessage = apiError.message;
       } else if (axiosError.response?.status === 400) {
         errorMessage = "Invalid or expired reset link. Please request a new one.";
         shouldRedirect = true;
