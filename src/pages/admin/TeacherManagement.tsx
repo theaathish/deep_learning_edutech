@@ -86,13 +86,18 @@ export function TeacherManagement() {
         search: debouncedSearch,
       });
 
+      const data = (response as any)?.data || response;
       const rawTeachers = Array.isArray((response as any)?.data)
         ? (response as any).data
-        : Array.isArray(response)
-          ? response
-          : Array.isArray((response as any)?.data?.data)
-            ? (response as any).data.data
-            : [];
+        : Array.isArray(data?.teachers)
+          ? data.teachers
+          : Array.isArray((data as any)?.data)
+            ? (data as any).data
+            : Array.isArray((response as any)?.data?.data)
+              ? (response as any).data.data
+              : Array.isArray(response)
+                ? response
+                : [];
 
       const normalized = rawTeachers
         .filter(Boolean)
@@ -104,7 +109,7 @@ export function TeacherManagement() {
             id: item?.id || user?.id || '',
             name: fullName || 'Unknown',
             email: user?.email || 'N/A',
-            coursesCount: item?._count?.courses ?? 0,
+            coursesCount: item?._count?.courses ?? item?.courses?.length ?? 0,
             status: ((item?.verificationStatus || 'unknown').toString().toLowerCase()) as Teacher['status'],
             joinDate: user?.createdAt || item?.createdAt,
             bio: item?.bio,
@@ -118,7 +123,11 @@ export function TeacherManagement() {
 
       setTeachers(normalized);
 
-      const paginationData = (response as any)?.pagination || (response as any)?.data?.pagination || {};
+      const paginationData = (response as any)?.pagination
+        || (response as any)?.data?.pagination
+        || data?.pagination
+        || data?.data?.pagination
+        || {};
       setPagination({
         page: pageToFetch,
         limit: Number(paginationData.limit) || limit,
