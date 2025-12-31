@@ -45,8 +45,7 @@ export function loadRazorpayScript(): Promise<boolean> {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
-    script.integrity = 'sha384-8C8Oy6x8nMNLpfL8BtCHr6lO6tP1JU0pGf0qbUpWBYV5qYbltRKLABKH6qMDvNMNM';
-    script.crossOrigin = 'anonymous';
+    // Note: Razorpay doesn't provide official SRI hashes, so we omit integrity attribute
     script.setAttribute('data-loading', 'true');
     script.onload = () => {
       script.removeAttribute('data-loading');
@@ -100,8 +99,20 @@ export function useVerifyPayment() {
 export function useCreateVerificationOrder() {
   return useMutation({
     mutationFn: async (data: CreateVerificationOrderInput) => {
-      const response = await api.post<ApiResponse<{ order: RazorpayOrder; payment: Payment }>>('/payments/verification/create-order', data);
-      return response.data;
+      console.log('🔵 useCreateVerificationOrder - Starting mutation');
+      console.log('📤 Request data:', data);
+      console.log('📍 Endpoint: /payments/verification/create-order');
+      
+      try {
+        const response = await api.post<ApiResponse<{ order: RazorpayOrder; payment: Payment }>>('/payments/verification/create-order', data);
+        console.log('✅ useCreateVerificationOrder - Success response:', response.data);
+        return response.data;
+      } catch (error: any) {
+        console.error('❌ useCreateVerificationOrder - API Error:', error);
+        console.error('📋 Error response:', error?.response?.data);
+        console.error('📋 Error status:', error?.response?.status);
+        throw error;
+      }
     },
   });
 }
@@ -112,8 +123,20 @@ export function useVerifyVerificationPayment() {
   
   return useMutation({
     mutationFn: async (data: RazorpayVerificationInput) => {
-      const response = await api.post<ApiResponse<{ payment: Payment }>>('/payments/verify', data);
-      return response.data;
+      console.log('🔵 useVerifyVerificationPayment - Starting mutation');
+      console.log('📤 Request data:', data);
+      console.log('📍 Endpoint: /payments/verification/verify');
+      
+      try {
+        const response = await api.post<ApiResponse<{ payment: Payment }>>('/payments/verification/verify', data);
+        console.log('✅ useVerifyVerificationPayment - Success response:', response.data);
+        return response.data;
+      } catch (error: any) {
+        console.error('❌ useVerifyVerificationPayment - API Error:', error);
+        console.error('📋 Error response:', error?.response?.data);
+        console.error('📋 Error status:', error?.response?.status);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentKeys.all });
@@ -149,13 +172,20 @@ export function useRazorpayPayment() {
       return;
     }
     
+    // Support both backend response formats: { id } or { orderId }
+    const orderId = order.id || order.orderId;
+    if (!orderId) {
+      onFailure?.(new Error('Invalid order: missing order ID'));
+      return;
+    }
+    
     const options: RazorpayOptions = {
-      key: RAZORPAY_KEY_ID,
+      key: order.keyId || RAZORPAY_KEY_ID, // Use keyId from order if available
       amount: order.amount,
       currency: order.currency,
       name: 'Deep Learning EduTech',
       description,
-      order_id: order.id,
+      order_id: orderId,
       handler: (response) => {
         onSuccess({
           razorpay_order_id: response.razorpay_order_id,

@@ -11,10 +11,12 @@ import { Upload, CreditCard, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateVerificationOrder, useVerifyVerificationPayment, useRazorpayPayment } from "@/hooks/usePayments";
 import { useTeacherProfile } from "@/hooks/useTeacher";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TutorStandPurchase = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, updateUser } = useAuth();
   const [purchaseStatus, setPurchaseStatus] = useState<"not_started" | "pending" | "verified" | "rejected">("not_started");
 
   // Payment hooks
@@ -22,14 +24,19 @@ const TutorStandPurchase = () => {
   const verifyPaymentMutation = useVerifyVerificationPayment();
   const { initiatePayment } = useRazorpayPayment();
 
-  // Teacher profile hook
-  const { data: teacherProfileResponse } = useTeacherProfile();
+  // Teacher profile hook with refetch capability
+  const { data: teacherProfileResponse, refetch: refetchTeacherProfile } = useTeacherProfile();
   const teacherProfile = teacherProfileResponse?.data;
 
   useEffect(() => {
-    // Fetch teacher profile from API
-    if (teacherProfile?.isVerified) {
+    // Check verification status from teacher profile or user object
+    const verificationStatus = teacherProfile?.verificationStatus || 
+                               (teacherProfile?.isVerified ? 'APPROVED' : 'PENDING');
+    
+    if (verificationStatus === 'APPROVED' || teacherProfile?.isVerified) {
       setPurchaseStatus("verified");
+    } else if (verificationStatus === 'REJECTED') {
+      setPurchaseStatus("rejected");
     } else {
       setPurchaseStatus("pending");
     }
@@ -37,16 +44,26 @@ const TutorStandPurchase = () => {
 
   const handleRazorpayPayment = async () => {
     try {
+      console.log('🚀 Starting teacher verification payment flow');
+      console.log('📋 Teacher Profile:', teacherProfile);
+      
       // Create verification order through backend (backend uses fixed ₹299)
-      const result = await createOrderMutation.mutateAsync({ plan: "verification", amount: 299 });
+      console.log('📤 Calling create-order API with empty object {}');
+      const result = await createOrderMutation.mutateAsync({});
+      
+      console.log('✅ Create order response:', result);
 
-      const order = result?.data?.order;
+      // Backend returns order data directly in 'data' field, not nested under 'data.order'
+      const order = result?.data;
+      console.log('📦 Extracted order:', order);
 
-      if (!order) {
+      if (!order || !order.orderId) {
+        console.error('❌ Order not found in response:', result);
         throw new Error("Order not returned from server");
       }
 
       // Initialize Razorpay payment
+      console.log('💳 Initializing Razorpay with order:', order);
       await initiatePayment({
         order,
         userInfo: {
@@ -56,12 +73,31 @@ const TutorStandPurchase = () => {
         description: "Teacher Verification Fee",
         onSuccess: async (paymentData) => {
             try {
+            console.log('✅ Payment successful, verifying...', paymentData);
+            
             // Verify payment on backend
-            await verifyPaymentMutation.mutateAsync(paymentData);
+            const verifyResult = await verifyPaymentMutation.mutateAsync(paymentData);
+            console.log('✅ Verification result:', verifyResult);
 
-            // Don't set verification status locally - server returns it
-            // The user object will be updated from API response
+            // Update local state immediately
             setPurchaseStatus("verified");
+
+            // Refresh teacher profile to get updated verification status
+            console.log('🔄 Refreshing teacher profile...');
+            await refetchTeacherProfile();
+
+            // Update user in auth context if teacher data is nested
+            if (user?.teacher) {
+              console.log('🔄 Updating auth context...');
+              updateUser({
+                ...user,
+                teacher: {
+                  ...user.teacher,
+                  isVerified: true,
+                  verificationStatus: 'APPROVED'
+                }
+              });
+            }
 
             toast({
               title: "Payment Successful!",
@@ -72,15 +108,23 @@ const TutorStandPurchase = () => {
             setTimeout(() => {
               navigate("/teacher/dashboard");
             }, 2000);
-            } catch (error) {
+            } catch (error: any) {
+            console.error('❌ Verification failed:', error);
+            console.error('📋 Verification error details:', {
+              message: error?.message,
+              response: error?.response?.data,
+              status: error?.response?.status
+            });
+            
             toast({
               variant: "destructive",
               title: "Payment verification failed",
-              description: "Please contact support if amount was deducted.",
+              description: error?.response?.data?.message || "Please contact support if amount was deducted.",
             });
           }
         },
         onFailure: (error) => {
+          console.error('❌ Razorpay payment failed:', error);
           toast({
             variant: "destructive",
             title: "Payment Failed",
@@ -88,11 +132,19 @@ const TutorStandPurchase = () => {
           });
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Order creation failed:', error);
+      console.error('📋 Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        stack: error?.stack
+      });
+      
       toast({
         variant: "destructive",
         title: "Order Creation Failed",
-        description: "Failed to create payment order. Please try again.",
+        description: error?.response?.data?.message || error?.message || "Failed to create payment order. Please try again.",
       });
     }
   };

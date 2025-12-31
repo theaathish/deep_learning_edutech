@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import Navbar from "@/components/Navbar";
@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Video, Loader2, X } from "lucide-react";
+import { Upload, Video, Loader2, X, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTeacherProfile } from "@/hooks/useTeacher";
 import api from "@/lib/api";
 import { getMediaUrl } from "@/lib/media";
 import type { ApiError } from "@/types";
@@ -30,6 +32,23 @@ const CreateCourse = () => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check teacher verification status
+  const { data: teacherProfileResponse, isLoading: isLoadingProfile } = useTeacherProfile();
+  const teacherProfile = teacherProfileResponse?.data;
+  const isVerified = teacherProfile?.verificationStatus === 'APPROVED' || teacherProfile?.isVerified;
+
+  // Redirect if not verified
+  useEffect(() => {
+    if (!isLoadingProfile && teacherProfile && !isVerified) {
+      toast({
+        variant: "destructive",
+        title: "Verification Required",
+        description: "Please complete teacher verification to create courses.",
+      });
+      navigate("/teacher/tutor-stand-purchase");
+    }
+  }, [isVerified, isLoadingProfile, teacherProfile, navigate, toast]);
 
   const categories = [
     "Mathematics",
@@ -212,6 +231,24 @@ const CreateCourse = () => {
               Share your knowledge by creating a 10-minute educational video course
             </p>
           </div>
+
+          {/* Verification Warning */}
+          {!isLoadingProfile && !isVerified && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Verification Required</AlertTitle>
+              <AlertDescription>
+                You need to complete teacher verification (₹299) before creating courses.{" "}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-destructive-foreground underline"
+                  onClick={() => navigate("/teacher/tutor-stand-purchase")}
+                >
+                  Pay verification fee now
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -412,13 +449,15 @@ const CreateCourse = () => {
               <Button
                 type="submit"
                 size="lg"
-                disabled={loading || uploading}
+                disabled={loading || uploading || !isVerified}
               >
                 {loading || uploading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     {uploading ? "Uploading files..." : "Creating course..."}
                   </>
+                ) : !isVerified ? (
+                  "Verification Required"
                 ) : (
                   "Create Course"
                 )}

@@ -61,6 +61,15 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccessToken();
+    
+    // Log request details
+    console.log('🌐 API Request:', {
+      method: config.method?.toUpperCase(),
+      url: `${config.baseURL}${config.url}`,
+      hasToken: !!token,
+      data: config.data
+    });
+    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -74,9 +83,23 @@ api.interceptors.request.use(
 
 // Response interceptor - handle token refresh and errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    console.error('❌ API Error Response:', {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      data: error.response?.data,
+      message: error.message
+    });
     
     // Network timeout or no response
     if (!error.response) {

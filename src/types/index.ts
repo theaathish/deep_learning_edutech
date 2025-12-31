@@ -23,8 +23,10 @@ export interface Teacher {
   specialization: string[];
   qualifications?: string;
   isVerified: boolean;
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'; // Teacher verification status
   tutorStandActive: boolean;
   tutorStandExpiresAt?: string;
+  user?: User; // Include user details in teacher profile
 }
 
 export interface Student {
@@ -120,8 +122,8 @@ export interface CreateSubscriptionOrderInput {
 }
 
 export interface CreateVerificationOrderInput {
-  plan: 'verification';
-  amount: number;
+  // Backend expects empty object for teacher verification
+  // The ₹299 amount is hardcoded on the backend
 }
 
 export interface RazorpayVerificationInput {
@@ -131,11 +133,13 @@ export interface RazorpayVerificationInput {
 }
 
 export interface RazorpayOrder {
-  id: string;
+  id?: string; // Deprecated: for backward compatibility
+  orderId?: string; // Backend returns this for verification orders
   amount: number;
   currency: string;
-  receipt: string;
-  status: string;
+  keyId?: string; // Backend returns this for verification orders
+  receipt?: string;
+  status?: string;
 }
 
 // Auth types
